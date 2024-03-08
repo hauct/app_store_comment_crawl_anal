@@ -1,0 +1,8 @@
+sqldf
+google.generativeai=0.4.0
+pandas
+datetime
+time
+selenium
+bs4
+psycopg2
