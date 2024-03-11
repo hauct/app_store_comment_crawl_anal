@@ -52,11 +52,10 @@ def connect_to_web(url):
 
     driver.find_element(By.ID, "password_text_field").send_keys('Haudau156')
     driver.find_element(By.XPATH, '/html/body/div[3]/apple-auth/div/div[1]/div/sign-in/div/div[1]/button[1]/i').click()
-    time.sleep(30)
+    time.sleep(60)
 
     ### Return to the main content and return the driver
     driver.switch_to.default_content()
-    time.sleep(10)
     print(f'Connected to {url}')
     return driver
 
@@ -64,8 +63,27 @@ def connect_to_web(url):
 ## Function to scroll the target div until the end
 def scroll_target_div(driver):
     target_div = driver.find_element(By.CSS_SELECTOR, '#main-ui-view > div.flexcol.ng-scope > div.pane-layout.ng-scope > div.pane-layout-content.ng-scope > div.pane-layout-content-wrapper.arrtwodeetwo.ng-scope')
-    driver.execute_script('arguments[0].scrollTop = arguments[0].scrollHeight', target_div)
 
+    # Get the initial scroll height
+    last_height = target_div.get_attribute('scrollHeight')
+
+    while True:
+        # Scroll to the bottom of the div
+        driver.execute_script('arguments[0].scrollTop = arguments[0].scrollHeight', target_div)
+
+        # Wait for the page to load
+        time.sleep(3)
+
+        # Get the current scroll height
+        current_height = target_div.get_attribute('scrollHeight')
+
+        # If the scroll height hasn't changed, exit the loop
+        if current_height == last_height:
+            break
+
+        # Update the last height
+        last_height = current_height
+        
 ## Function to get all reviews in soup type
 def crawl_reviews(driver):
     ### Thay đổi sang frame chứa review và comment
@@ -247,7 +265,7 @@ def ingest_to_db(app_reviews_agg, game):
 
     # Create table if it doesn't exist
     create_table_query = f"""
-    CREATE TABLE IF NOT EXISTS {game}.{game}__app_reviews_agg (
+    CREATE TABLE IF NOT EXISTS {game}.{game}_app_reviews_agg (
         review_date DATE,
         review_star VARCHAR(255),
         emotion VARCHAR(255),
@@ -259,6 +277,7 @@ def ingest_to_db(app_reviews_agg, game):
     )
     """
     cur.execute(create_table_query)
+    print('Created table')
     conn.commit()
 
     print('Ingesting to database')
