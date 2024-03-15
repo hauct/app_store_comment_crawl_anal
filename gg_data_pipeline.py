@@ -32,52 +32,45 @@ def connect_to_web(url):
 
 # Crawl data
 ## Function to scroll the target div until the end
-def scroll_target_div(scroll_num, driver):
-    ### Find the parent div with class name "odk6He"
+def scroll_target_div(driver):
     target_div = driver.find_element(By.CLASS_NAME, "fysCi")
     
-    ### Get initial scroll height
-    last_height = driver.execute_script("return arguments[0].scrollHeight", target_div)
-    
-    scrolls = 0
+    # Get the initial scroll height
+    last_height = target_div.get_attribute('scrollHeight')
     while True:
-        ### Scroll the target div to the bottom
+        # Scroll to the bottom of the div
         driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", target_div)
-        
-        ### Wait for a short time for the page to load
-        time.sleep(2)
-        
-        ### Get updated scroll height
-        new_height = driver.execute_script("return arguments[0].scrollHeight", target_div)
-        
-        ### If scroll height hasn't changed, we've reached the bottom of the div
-        if (new_height == last_height)|(scrolls == scroll_num):
+
+        # Wait for the page to load
+        time.sleep(5)
+
+        # Get the current scroll height
+        current_height = target_div.get_attribute('scrollHeight')
+
+        # If the scroll height hasn't changed, exit the loop
+        if current_height == last_height:
             break
-        
-        ### Update last scroll height
-        last_height = new_height
-        scrolls = scrolls + 1 
+
+        # Update the last height
+        last_height = current_height    
 
 ## Function to get all reviews in soup type
-def crawl_reviews(driver, scroll_num):
+def crawl_reviews(driver):
     ### Click to review button
-    review_butt = driver.find_element(By.XPATH, '/html/body/c-wiz[2]/div/div/div[1]/div[2]/div[2]/div/div[1]/div[1]/c-wiz[4]/section/header/div/div[2]/button/i')
-    review_butt.click()
+    driver.find_element(By.CSS_SELECTOR, '#yDmH0d > c-wiz.SSPGKf.Czez9d > div > div > div:nth-child(1) > div > div.wkMJlb.YWi3ub > div > div.qZmL0 > div:nth-child(1) > c-wiz:nth-child(5) > section > header > div > div:nth-child(2) > button > i').click()
     time.sleep(2)
 
-    ### Click to sort button
-    sort_butt = driver.find_element(By.XPATH, '//*[@id="sortBy_1"]/div[2]/i')
-    sort_butt.click()
+    # ### Click to sort button
+    driver.find_element(By.CSS_SELECTOR, '#sortBy_1 > div.kW9Bj > i').click()
     time.sleep(2)
 
     ### Click to newest button
-    newest_butt = driver.find_element(By.XPATH, '/html/body/div[4]/div[2]/div/div/div/div/div[2]/div[2]/div/div/span[2]/div[2]/div[2]')
-    newest_butt.click()
+    driver.find_element(By.CSS_SELECTOR, '#yDmH0d > div.VfPpkd-Sx9Kwc.cC1eCc.UDxLd.PzCPDd.HQdjr.VfPpkd-Sx9Kwc-OWXEXe-FNFY6c > div.VfPpkd-wzTsW > div > div > div > div > div.fysCi > div.JPdR6b.e5Emjc.ah7Sve.qjTEB > div > div > span:nth-child(2) > div.uyYuVb.oJeWuf > div.jO7h3c').click()
     time.sleep(2)
 
     ### Scroll down the specific div element
     print('Scrolling the reviews page')
-    scroll_target_div(scroll_num, driver)
+    scroll_target_div(driver)
     print('Scrolling completed !!!')
 
     ### Get the page source after clicking the button
@@ -170,6 +163,7 @@ def classify_emotion(model, text):
     hoặc mang hàm ý tương tự, chửi rủa thì cho nó là neg. \
     - Còn lại những câu không rõ ràng, spam, thì cho là neu.\
     Chỉ cần trả lời là pos hoặc neg hoặc neu: {text}''')
+    time.sleep(3)
     return response.text
 
 def summary_review(model, text):
@@ -187,6 +181,7 @@ def summary_review(model, text):
     - Góp ý cho game: Là những comment thường mang hàm ý mong thêm cái gì mới, sửa cái gì đó
     - Khác: Là những comment không thuộc các loại kể trên\
     Chỉ được dùng một trong các phân loại trên, không cần ghi thêm hoặc ghi khác: {text}''')
+    time.sleep(5)
     return response.text
 
 def segment_df(model, gg_reviews):
@@ -230,6 +225,23 @@ def ingest_to_db(gg_reviews_agg, game):
     # Tạo đối tượng cursor để thực hiện các thao tác với cơ sở dữ liệu
     cur = conn.cursor()
 
+    # Create table if it doesn't exist
+    create_table_query = f"""
+    CREATE TABLE IF NOT EXISTS {game}.{game}_gg_reviews_agg (
+        review_date DATE,
+        review_star VARCHAR(255),
+        emotion VARCHAR(255),
+        summary_review TEXT,
+        num_review_star INT2,
+        num_emotion INT2,
+        num_summary_review INT2,
+        PRIMARY KEY (review_date, review_star, emotion, summary_review)
+    )
+    """
+    cur.execute(create_table_query)
+    print('Created table')
+    conn.commit()
+
     print('Ingesting to database')
     for row in gg_reviews_agg.itertuples():
         try:
@@ -250,11 +262,10 @@ def ingest_to_db(gg_reviews_agg, game):
 
 if __name__=="__main__":
     # Number of scrolls
-    SCROLL_NUM = 4
     GAME = 'tlbb2'
 
     driver = connect_to_web(GG_URL)
-    soup = crawl_reviews(driver, SCROLL_NUM)
+    soup = crawl_reviews(driver)
     gg_reviews = get_df(soup)
 
     model = create_model(GEM_API_KEY)

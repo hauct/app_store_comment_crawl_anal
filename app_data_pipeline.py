@@ -204,6 +204,7 @@ def classify_emotion(model, text):
     hoặc mang hàm ý tương tự, chửi rủa thì cho nó là neg. \
     - Còn lại những câu không rõ ràng, spam, thì cho là neu.\
     Chỉ cần trả lời là pos hoặc neg hoặc neu: {text}''')
+    time.sleep(3)
     return response.text
 
 def summary_review(model, text):
@@ -221,6 +222,7 @@ def summary_review(model, text):
     - Góp ý cho game: Là những comment thường mang hàm ý mong thêm cái gì mới, sửa cái gì đó
     - Khác: Là những comment không thuộc các loại kể trên\
     Chỉ được dùng một trong các phân loại trên, không cần ghi thêm hoặc ghi khác: {text}''')
+    time.sleep(5)
     return response.text
 
 def segment_df(model, app_reviews):
