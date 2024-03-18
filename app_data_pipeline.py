@@ -62,20 +62,20 @@ def connect_to_web(url):
 # Crawl data
 ## Function to scroll the target div until the end
 def scroll_target_div(driver):
-    target_div = driver.find_element(By.CSS_SELECTOR, '#main-ui-view > div.flexcol.ng-scope > div.pane-layout.ng-scope > div.pane-layout-content.ng-scope > div.pane-layout-content-wrapper.arrtwodeetwo.ng-scope')
-
+    target_div = driver.find_element(By.XPATH, '//*[@id="main-ui-view"]/div[5]/div[2]/div[2]/div[3]')
+    
     # Get the initial scroll height
     last_height = target_div.get_attribute('scrollHeight')
-
+    
     while True:
         # Scroll to the bottom of the div
-        driver.execute_script('arguments[0].scrollTop = arguments[0].scrollHeight', target_div)
-
-        # Wait for the page to load
-        time.sleep(3)
-
+        driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", target_div)
+        
         # Get the current scroll height
         current_height = target_div.get_attribute('scrollHeight')
+
+        # Wait for the page to load
+        time.sleep(5)
 
         # If the scroll height hasn't changed, exit the loop
         if current_height == last_height:
@@ -83,7 +83,7 @@ def scroll_target_div(driver):
 
         # Update the last height
         last_height = current_height
-        
+                
 ## Function to get all reviews in soup type
 def crawl_reviews(driver):
     ### Thay đổi sang frame chứa review và comment
